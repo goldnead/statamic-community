@@ -1,0 +1,87 @@
+{
+    "name": "goldnead/statamic-community",
+    "description": "Community for Statamic: curated rooms, posts, comments and reactions, with a chronological feed and optional pre-moderation.",
+    "type": "statamic-addon",
+    "license": "proprietary",
+    "keywords": [
+        "statamic",
+        "statamic-addon",
+        "community",
+        "rooms",
+        "feed"
+    ],
+    "authors": [
+        {
+            "name": "Adrian Goldner",
+            "email": "info@adriangoldner.com"
+        }
+    ],
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/goldnead/statamic-teams"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/goldnead/statamic-accounts"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "goldnead/statamic-teams": "dev-codex/chorgesucht-claims as 0.3.x-dev",
+        "laravel/framework": "^12.40|^13.0",
+        "statamic/cms": "^6.0"
+    },
+    "require-dev": {
+        "goldnead/statamic-accounts": "^0.5",
+        "laravel/pint": "^1.18",
+        "orchestra/testbench": "^10.0 || ^11.0",
+        "phpunit/phpunit": "^11.0 || ^12.0"
+    },
+    "suggest": {
+        "goldnead/statamic-accounts": "Posts, comments, reactions and memberships of a deleted account are erased, and appear in the data export.",
+        "goldnead/statamic-notifications": "Notify on new posts and comments (listen to PostCreated, CommentCreated)."
+    },
+    "autoload": {
+        "psr-4": {
+            "Goldnead\\Community\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Goldnead\\Community\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "statamic": {
+            "name": "Community",
+            "description": "Rooms, posts, comments and reactions with a chronological feed.",
+            "url": "https://github.com/goldnead/statamic-community",
+            "developer": "Adrian Goldner",
+            "developer-url": "https://adriangoldner.dev"
+        },
+        "laravel": {
+            "providers": [
+                "Goldnead\\Community\\ServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "test": [
+            "@php vendor/bin/phpunit"
+        ],
+        "lint": [
+            "@php vendor/bin/pint --test"
+        ]
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "composer/installers": true,
+            "php-http/discovery": true,
+            "pixelfear/composer-dist-plugin": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
