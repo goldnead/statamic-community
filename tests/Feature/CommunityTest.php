@@ -17,6 +17,7 @@ use Goldnead\Community\Seeders\RoomSeeder;
 use Goldnead\Community\Services\CommentService;
 use Goldnead\Community\Services\PostService;
 use Goldnead\Community\Services\ReactionService;
+use Goldnead\Community\Support\Sanitizer;
 use Goldnead\Community\Tests\TestCase;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Event;
@@ -179,6 +180,34 @@ class CommunityTest extends TestCase
 
         $this->expectException(AuthorizationException::class);
         $this->posts()->hide($post, $this->newcomer);
+    }
+
+    public function test_sanitiser_keeps_utf8(): void
+    {
+        $body = '<p>Grüße äöüß €</p>';
+
+        $this->assertSame($body, app(Sanitizer::class)->clean($body));
+        $this->assertSame($body, $this->publish(body: $body)->body);
+    }
+
+    public function test_hidden_post_is_not_visible_nor_commentable_or_reactable(): void
+    {
+        $post = $this->publish();
+        $this->posts()->hide($post, $this->moderator);
+        $post = $post->fresh();
+
+        $this->assertFalse($post->isVisible());
+
+        try {
+            app(CommentService::class)->create($post, $this->newcomer, 'Hi');
+            $this->fail('No comment on hidden post.');
+        } catch (AuthorizationException) {
+        }
+        try {
+            app(ReactionService::class)->react($post, $this->newcomer);
+            $this->fail('No reaction to hidden post.');
+        } catch (AuthorizationException) {
+        }
     }
 
     public function test_html_is_sanitised(): void

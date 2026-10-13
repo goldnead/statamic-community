@@ -47,7 +47,7 @@ class Post extends Model
 
     public function isVisible(): bool
     {
-        return $this->status === self::PUBLISHED && ! $this->hidden;
+        return $this->status === self::PUBLISHED && ! $this->getAttribute('hidden');
     }
 
     /** @return BelongsTo<Room, $this> */

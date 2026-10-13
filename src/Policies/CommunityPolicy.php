@@ -32,7 +32,7 @@ class CommunityPolicy
 
     public function react(mixed $user, Post|Comment $target): bool
     {
-        $visible = $target instanceof Post ? $target->isVisible() : (! $target->hidden && $target->post->isVisible());
+        $visible = $target instanceof Post ? $target->isVisible() : (! $target->getAttribute('hidden') && $target->post->isVisible());
 
         return $visible && $this->confirmed($user);
     }
