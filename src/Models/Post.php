@@ -20,6 +20,8 @@ use Illuminate\Support\Carbon;
  * @property string $body Sanitised HTML.
  * @property string $status published|pending
  * @property bool $hidden
+ * @property Carbon|null $created_at
+ * @property string|null $hidden_reason
  * @property Carbon|null $published_at
  */
 class Post extends Model

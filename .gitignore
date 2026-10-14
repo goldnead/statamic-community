@@ -1,5 +1,6 @@
 /vendor
 /node_modules
+/dist/hot
 /.phpstan
 .phpunit.result.cache
 .phpunit.cache

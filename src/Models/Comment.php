@@ -4,6 +4,7 @@ namespace Goldnead\Community\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
@@ -13,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $author_team_id
  * @property string $body Sanitised HTML.
  * @property bool $hidden
+ * @property Carbon|null $created_at
+ * @property string|null $hidden_reason
  */
 class Comment extends Model
 {

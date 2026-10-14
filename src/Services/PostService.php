@@ -77,6 +77,7 @@ class PostService
             $commentIds = $post->comments()->pluck('id');
             Reaction::where('target_type', Comment::TYPE)->whereIn('target_id', $commentIds)->delete();
             Reaction::where('target_type', Post::TYPE)->where('target_id', $post->id)->delete();
+            Room::where('pinned_post_id', $post->id)->update(['pinned_post_id' => null]);
             $post->delete();
         });
     }
@@ -86,20 +87,28 @@ class PostService
     {
         Gate::forUser($moderator)->authorize('moderate', Post::class);
 
-        if ($post->status === Post::PENDING) {
-            $post->update(['status' => Post::PUBLISHED, 'published_at' => now()]);
-            PostCreated::dispatch($post);
-        }
+        // Conditional in the database, not on the loaded model: of two
+        // moderators who approve at once only one update matches the pending
+        // row, so only one of them announces the post.
+        $published = now();
+        $claimed = Post::where('id', $post->id)->where('status', Post::PENDING)
+            ->update(['status' => Post::PUBLISHED, 'published_at' => $published, 'updated_at' => $published]);
+
+        $post->refresh();
+
+        $claimed === 1 && PostCreated::dispatch($post);
 
         return $post;
     }
 
     /** Moderation: hide or restore a post or comment. Nothing is deleted. */
-    public function hide(Post|Comment $target, mixed $moderator, bool $hidden = true): void
+    public function hide(Post|Comment $target, mixed $moderator, bool $hidden = true, ?string $reason = null): void
     {
         Gate::forUser($moderator)->authorize('moderate', Post::class);
 
-        $target->update(['hidden' => $hidden]);
+        $reason = $hidden ? mb_substr(trim(strip_tags((string) $reason)), 0, 255) : '';
+
+        $target->update(['hidden' => $hidden, 'hidden_reason' => $reason === '' ? null : $reason]);
     }
 
     /**
@@ -114,6 +123,8 @@ class PostService
         return Post::visible()
             ->when($room, fn ($q) => $q->where('room_id', $room->id))
             ->when($region, fn ($q) => $q->where('region', $region))
+            // The one pinned post of a room leads; everything else stays chronological.
+            ->when($room?->pinned_post_id, fn ($q, $pinned) => $q->orderByRaw('case when id = ? then 0 else 1 end', [$pinned]))
             ->orderByDesc('published_at')
             ->orderByDesc('id');
     }

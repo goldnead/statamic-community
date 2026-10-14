@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $icon
  * @property string|null $description
  * @property bool $curated
+ * @property int|null $pinned_post_id
  * @property Carbon|null $archived_at
  */
 class Room extends Model

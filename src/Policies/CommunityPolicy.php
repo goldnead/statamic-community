@@ -11,7 +11,7 @@ use Goldnead\Teams\TeamsManager;
 /**
  * Registered for {@see Post} and {@see Comment}. Writing needs a confirmed
  * account, writing as a team needs the team permission `post as team`
- * (goldnead/statamic-teams). Editing is for the author only; deleting is
+ * (goldnead/statamic-teams). Editing is for the author only, and only while the account is confirmed; deleting is
  * for the author and for moderators (`moderate community`).
  */
 class CommunityPolicy
@@ -39,7 +39,7 @@ class CommunityPolicy
 
     public function update(mixed $user, Post|Comment $target): bool
     {
-        return $this->own($user, $target);
+        return $this->confirmed($user) && $this->own($user, $target);
     }
 
     public function delete(mixed $user, Post|Comment $target): bool
