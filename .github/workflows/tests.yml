@@ -136,3 +136,30 @@ jobs:
 
       - name: Run addon-lint
         run: php studio/tools/addon-lint/bin/addon-lint addon --no-color --fail-on=major -v
+
+  assets:
+    runs-on: ubuntu-latest
+    name: Built assets are current
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      # `@statamic/cms` is installed from vendor/, so Composer runs first.
+      - run: composer install --prefer-dist --no-interaction
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm ci
+      - run: npm run build
+
+      # The consumers of this addon have no Node toolchain: what is committed
+      # in dist/ is what they load.
+      - name: Fail when dist/ differs from a fresh build
+        run: git diff --exit-code -- dist
