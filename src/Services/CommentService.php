@@ -59,6 +59,8 @@ class CommentService
     {
         $body = $this->sanitizer->clean($body);
 
+        strlen($body) > Sanitizer::MAX_BODY && throw CommunityException::tooLong();
+
         return trim(strip_tags($body)) === '' ? throw CommunityException::emptyBody() : $body;
     }
 }
