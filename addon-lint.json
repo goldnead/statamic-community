@@ -1,0 +1,13 @@
+{
+    "severity": {
+        "release.versioning": "minor"
+    },
+
+    "_rationale": {
+        "release.versioning": [
+            "Downgraded, not disabled: it stays visible in every report.",
+            "The addon has not been released yet and tagging is the release step itself, which the hardening pass is not allowed to take (no tag, no push).",
+            "Remove this entry when the first tag exists."
+        ]
+    }
+}

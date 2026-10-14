@@ -36,7 +36,18 @@ abstract class TestCase extends AddonTestCase
 
         $app['config']->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
         $app['config']->set('database.default', 'testing');
-        $app['config']->set('database.connections.testing', [
+        // `phpunit.mysql.xml` sets DB_DRIVER=mysql to run the suite on a real server.
+        $app['config']->set('database.connections.testing', env('DB_DRIVER') === 'mysql' ? [
+            'driver' => 'mysql',
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => env('DB_DATABASE', 'community_test'),
+            'username' => env('DB_USERNAME', 'root'),
+            'password' => env('DB_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+        ] : [
             'driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '', 'foreign_key_constraints' => true,
         ]);
         $app['config']->set('statamic.users.repository', 'file');

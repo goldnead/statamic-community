@@ -1,0 +1,138 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# This repository is private: with an empty permission set the job token cannot
+# read it and actions/checkout fails on every job.
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4']
+        # Statamic 6 requires laravel/framework ^12.40 || ^13.0, so an ^11.0 leg
+        # can never resolve.
+        laravel: ['^12.0', '^13.0']
+        stability: [prefer-lowest, prefer-stable]
+        exclude:
+          # Laravel 13 requires PHP ^8.3.
+          - php: '8.2'
+            laravel: '^13.0'
+
+    name: PHP ${{ matrix.php }} · Laravel ${{ matrix.laravel }} · ${{ matrix.stability }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, intl, fileinfo
+          coverage: none
+
+      - name: Install dependencies
+        run: |
+          composer require "laravel/framework:${{ matrix.laravel }}" --no-interaction --no-update
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+
+      - name: Run tests
+        run: vendor/bin/phpunit
+
+  mysql:
+    name: MySQL 8
+    runs-on: ubuntu-latest
+
+    # Column widths and the `text` size limit exist only on a real server.
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: community_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_mysql, intl, fileinfo
+          coverage: none
+
+      - run: composer update --prefer-dist --no-progress --no-interaction
+
+      - name: Run the suite against MySQL
+        run: vendor/bin/phpunit -c phpunit.mysql.xml
+
+  lint:
+    runs-on: ubuntu-latest
+    name: Code style
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - run: composer install --prefer-dist --no-interaction
+
+      # Check, never fix: auto-committing style changes rewrites a contributor's branch.
+      - run: vendor/bin/pint --test
+
+  analyse:
+    runs-on: ubuntu-latest
+    name: Static analysis
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - run: composer install --prefer-dist --no-interaction
+
+      - run: vendor/bin/phpstan analyse --no-progress
+
+  standards:
+    runs-on: ubuntu-latest
+    name: Addon standards
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: addon
+          # release.versioning reads the repository's tags.
+          fetch-depth: 0
+
+      - uses: actions/checkout@v4
+        with:
+          repository: goldnead/statamic-addon-studio
+          path: studio
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Run addon-lint
+        run: php studio/tools/addon-lint/bin/addon-lint addon --no-color --fail-on=major -v

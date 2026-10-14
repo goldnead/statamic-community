@@ -47,8 +47,8 @@ class PostService
                 'author_team_id' => $team?->id,
                 'room_id' => $room?->id,
                 'category' => $category,
-                'region' => $region,
-                'title' => trim(strip_tags($title)),
+                'region' => mb_substr($region, 0, 255),
+                'title' => mb_substr(trim(strip_tags($title)), 0, 255),
                 'body' => $this->clean($body),
                 'status' => $published ? Post::PUBLISHED : Post::PENDING,
                 'published_at' => $published ? now() : null,
@@ -64,7 +64,7 @@ class PostService
     {
         Gate::forUser($user)->authorize('update', $post);
 
-        $post->update(array_filter(['body' => $this->clean($body), 'title' => $title === null ? null : trim(strip_tags($title))], fn ($v) => $v !== null));
+        $post->update(array_filter(['body' => $this->clean($body), 'title' => $title === null ? null : mb_substr(trim(strip_tags($title)), 0, 255)], fn ($v) => $v !== null));
 
         return $post;
     }
@@ -130,6 +130,8 @@ class PostService
     protected function clean(string $body): string
     {
         $body = $this->sanitizer->clean($body);
+
+        strlen($body) > Sanitizer::MAX_BODY && throw CommunityException::tooLong();
 
         return trim(strip_tags($body)) === '' ? throw CommunityException::emptyBody() : $body;
     }
