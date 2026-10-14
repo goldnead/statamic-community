@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    The same suite, against a real MySQL server.
+
+        vendor/bin/phpunit -c phpunit.mysql.xml
+
+    SQLite does not enforce column widths, utf8mb4 byte arithmetic or the
+    `text` size limit, so a body or title that is too long passes there and
+    fails the insert on MySQL. Point DB_HOST/DB_PORT/DB_DATABASE/DB_USERNAME/
+    DB_PASSWORD at a throwaway database; the suite migrates it on every run.
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true">
+    <testsuites>
+        <testsuite name="Test Suite"><directory suffix="Test.php">./tests</directory></testsuite>
+    </testsuites>
+    <source><include><directory suffix=".php">./src</directory></include></source>
+    <php>
+        <env name="APP_KEY" value="base64:zBxjeMPnHWA0nsGZDzB0mNlOZ2qJcSZFxJVIYCJTL3M="/>
+        <env name="DB_CONNECTION" value="testing"/>
+        <env name="DB_DRIVER" value="mysql"/>
+        <env name="DB_HOST" value="127.0.0.1"/>
+        <env name="DB_PORT" value="3306"/>
+        <env name="DB_DATABASE" value="community_test"/>
+        <env name="DB_USERNAME" value="root"/>
+        <env name="DB_PASSWORD" value=""/>
+    </php>
+</phpunit>
