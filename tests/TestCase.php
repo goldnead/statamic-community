@@ -40,15 +40,6 @@ abstract class TestCase extends AddonTestCase
     {
         parent::defineEnvironment($app);
 
-        // Where brand-context is in vendor, the CP edit route names its `brand.setup-guard`
-        // alias. The package's provider registers it on a real install; it is not booted
-        // here, so only that alias is registered, from the package's own constant.
-        $guard = self::BRAND_GUARD;
-
-        if (class_exists($guard)) {
-            $app['router']->aliasMiddleware($guard::ALIAS, $guard);
-        }
-
         $app['config']->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
         $app['config']->set('database.default', 'testing');
         // `phpunit.mysql.xml` sets DB_DRIVER=mysql to run the suite on a real server.
