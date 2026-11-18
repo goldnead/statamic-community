@@ -16,10 +16,16 @@ abstract class TestCase extends AddonTestCase
 
     protected string $addonServiceProvider = ServiceProvider::class;
 
+    /** `goldnead/statamic-brand-context` >= 1.27's setup guard, a suggest: named as a string, never imported. */
+    protected const BRAND_GUARD = 'Goldnead\BrandContext\Http\Middleware\GuardSetup';
+
     protected function getPackageProviders($app): array
     {
         return [
             \Goldnead\Teams\ServiceProvider::class,
+            // Booted as on a real install: its boot puts the setup guard ahead of SubstituteBindings,
+            // which a route that type-hints its room needs. Without the package there is nothing to boot.
+            ...(class_exists(self::BRAND_GUARD) ? ['Goldnead\BrandContext\ServiceProvider'] : []),
             ...parent::getPackageProviders($app),
         ];
     }
@@ -33,6 +39,15 @@ abstract class TestCase extends AddonTestCase
     protected function defineEnvironment($app): void
     {
         parent::defineEnvironment($app);
+
+        // Where brand-context is in vendor, the CP edit route names its `brand.setup-guard`
+        // alias. The package's provider registers it on a real install; it is not booted
+        // here, so only that alias is registered, from the package's own constant.
+        $guard = self::BRAND_GUARD;
+
+        if (class_exists($guard)) {
+            $app['router']->aliasMiddleware($guard::ALIAS, $guard);
+        }
 
         $app['config']->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
         $app['config']->set('database.default', 'testing');
