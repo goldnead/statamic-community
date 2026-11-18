@@ -11,6 +11,17 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\Test;
 
+/** A guard class whose alias nobody registered: brand-context in vendor, its provider not booted. */
+class AliasLessGuard
+{
+    public const ALIAS = 'brand.never-registered-guard';
+
+    public static function using(string $setup, string $title, string ...$tables): string
+    {
+        return self::ALIAS.':'.$setup;
+    }
+}
+
 /**
  * The room edit page's setup guard comes from `goldnead/statamic-brand-context`
  * (>= 1.27), which is a suggest. Both installs have to hold:
@@ -110,6 +121,37 @@ class BrandContextGuardTest extends TestCase
 
         $this->assertSame('community::SetupRequired', $page['component']);
         $this->assertContains('community_rooms', $page['props']['tables']);
+    }
+
+    #[Test]
+    public function a_guard_class_without_its_alias_in_the_router_gives_no_middleware(): void
+    {
+        $this->assertSame([], Setup::detailGuardFrom(AliasLessGuard::class, 'Rooms', 'community_rooms'));
+    }
+
+    #[Test]
+    public function with_brand_context_a_user_without_the_permission_does_not_see_the_setup_screen(): void
+    {
+        if (! $this->installed()) {
+            $this->markTestSkipped('goldnead/statamic-brand-context is not installed.');
+        }
+
+        // brand-context's GuardSetup runs ahead of `can:` and, up to 1.27.1, showed the screen to a user the
+        // route refuses. The fix names the route's own `can:` checks (`routeAuthorization`); older versions skip.
+        if (! (new \ReflectionClass(self::BRAND_GUARD))->hasMethod('routeAuthorization')) {
+            $this->markTestSkipped('goldnead/statamic-brand-context has no route authorization in its setup guard yet (> 1.27.1).');
+        }
+
+        $room = $this->choir;
+        $this->dropCommunityTables();
+
+        // May open the Control Panel and look, may not moderate.
+        $allowed = ['access cp', 'view community'];
+        Gate::before(fn ($user, $ability) => in_array($ability, $allowed, true) ? true : null);
+        $user = $this->makeUser('reader-'.uniqid().'@example.test', 'Reader');
+
+        $this->actingAs($user)->get('/cp/community/rooms/'.$room->id.'/edit')->assertRedirect();
+        $this->actingAs($user)->getJson('/cp/community/rooms/'.$room->id.'/edit')->assertForbidden();
     }
 
     #[Test]
