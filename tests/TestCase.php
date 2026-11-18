@@ -16,10 +16,16 @@ abstract class TestCase extends AddonTestCase
 
     protected string $addonServiceProvider = ServiceProvider::class;
 
+    /** `goldnead/statamic-brand-context` >= 1.27's setup guard, a suggest: named as a string, never imported. */
+    protected const BRAND_GUARD = 'Goldnead\BrandContext\Http\Middleware\GuardSetup';
+
     protected function getPackageProviders($app): array
     {
         return [
             \Goldnead\Teams\ServiceProvider::class,
+            // Booted as on a real install: its boot puts the setup guard ahead of SubstituteBindings,
+            // which a route that type-hints its room needs. Without the package there is nothing to boot.
+            ...(class_exists(self::BRAND_GUARD) ? ['Goldnead\BrandContext\ServiceProvider'] : []),
             ...parent::getPackageProviders($app),
         ];
     }

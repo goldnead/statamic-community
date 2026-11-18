@@ -4,6 +4,7 @@ use Goldnead\Community\Http\Controllers\Cp\CommentController;
 use Goldnead\Community\Http\Controllers\Cp\ModerationActionController;
 use Goldnead\Community\Http\Controllers\Cp\PostController;
 use Goldnead\Community\Http\Controllers\Cp\RoomController;
+use Goldnead\Community\Support\Setup;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -18,7 +19,13 @@ Route::prefix('community')->name('community.')->group(function () {
     Route::get('rooms', [RoomController::class, 'index'])->name('rooms.index')->middleware('can:view community');
     Route::get('rooms/create', [RoomController::class, 'create'])->name('rooms.create')->middleware('can:moderate community');
     Route::post('rooms', [RoomController::class, 'store'])->name('rooms.store')->middleware('can:moderate community');
-    Route::get('rooms/{room}/edit', [RoomController::class, 'edit'])->name('rooms.edit')->whereNumber('room')->middleware('can:moderate community');
+    // The edit page takes its room by type hint, so route-model binding reads the table before the
+    // controller starts. The setup guard of brand-context (>= 1.27), when installed, runs first.
+    Route::get('rooms/{room}/edit', [RoomController::class, 'edit'])
+        ->name('rooms.edit')
+        ->whereNumber('room')
+        ->middleware('can:moderate community')
+        ->middleware(Setup::detailGuard('Rooms', 'community_rooms', 'community_posts'));
     Route::patch('rooms/{room}', [RoomController::class, 'update'])->name('rooms.update')->whereNumber('room')->middleware('can:moderate community');
 
     // The two endpoints core's <Listing> uses for row and bulk actions.

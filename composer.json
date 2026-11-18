@@ -24,6 +24,7 @@
     },
     "require-dev": {
         "goldnead/statamic-accounts": "^0.5",
+        "goldnead/statamic-brand-context": "^1.27",
         "larastan/larastan": "^3.13",
         "laravel/pint": "^1.18",
         "orchestra/testbench": "^10.0 || ^11.0",
@@ -31,7 +32,8 @@
     },
     "suggest": {
         "goldnead/statamic-accounts": "Posts, comments, reactions and memberships of a deleted account are erased, and appear in the data export.",
-        "goldnead/statamic-notifications": "Notify on new posts and comments (listen to PostCreated, CommentCreated)."
+        "goldnead/statamic-notifications": "Notify on new posts and comments (listen to PostCreated, CommentCreated).",
+        "goldnead/statamic-brand-context": "On the Control Panel room edit page, shows the setup screen instead of an HTTP 500 while the database tables are missing. Needs >= 1.27; without it the page behaves as before."
     },
     "autoload": {
         "psr-4": {
