@@ -85,20 +85,34 @@ class PostService
     /** A moderator releases a post that pre-moderation held back. */
     public function approve(Post $post, mixed $moderator): Post
     {
+        $this->claimApproval($post, $moderator);
+
+        return $post;
+    }
+
+    /**
+     * Release a waiting post and say whether this call did it.
+     *
+     * False when the post was hidden by moderation, is not waiting any more, or
+     * another moderator approved it a moment earlier.
+     */
+    public function claimApproval(Post $post, mixed $moderator): bool
+    {
         Gate::forUser($moderator)->authorize('moderate', Post::class);
 
         // Conditional in the database, not on the loaded model: of two
         // moderators who approve at once only one update matches the pending
-        // row, so only one of them announces the post.
+        // row, so only one of them announces the post. A post moderation hid
+        // stays waiting until it is shown again.
         $published = now();
         $claimed = Post::where('id', $post->id)->where('status', Post::PENDING)->where('hidden', false)
-            ->update(['status' => Post::PUBLISHED, 'published_at' => $published, 'updated_at' => $published]);
+            ->update(['status' => Post::PUBLISHED, 'published_at' => $published, 'updated_at' => $published]) === 1;
 
         $post->refresh();
 
-        $claimed === 1 && PostCreated::dispatch($post);
+        $claimed && PostCreated::dispatch($post);
 
-        return $post;
+        return $claimed;
     }
 
     /** Moderation: hide or restore a post or comment. Nothing is deleted. */

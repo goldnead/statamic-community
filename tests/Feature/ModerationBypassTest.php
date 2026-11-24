@@ -71,7 +71,7 @@ class ModerationBypassTest extends TestCase
         $this->assertFalse(Gate::forUser($author)->allows('update', $post->fresh()));
     }
 
-    public function test_a_member_who_lost_the_team_permission_cannot_edit_or_delete_the_teams_posts(): void
+    public function test_a_member_who_lost_the_team_permission_cannot_edit_the_teams_posts(): void
     {
         $admin = $this->confirmed('admin@example.test');
         $member = $this->confirmed('member@example.test');
@@ -88,7 +88,8 @@ class ModerationBypassTest extends TestCase
         ]);
 
         $this->assertFalse(Gate::forUser($member)->allows('update', $post));
-        $this->assertFalse(Gate::forUser($member)->allows('delete', $post));
+        // Deleting one's own text stays with the author.
+        $this->assertTrue(Gate::forUser($member)->allows('delete', $post));
 
         // The one who may speak for the team still edits and deletes what they wrote for it.
         $own = Post::create([
@@ -101,5 +102,39 @@ class ModerationBypassTest extends TestCase
         ]);
         $this->assertTrue(Gate::forUser($admin)->allows('update', $own));
         $this->assertTrue(Gate::forUser($admin)->allows('delete', $own));
+    }
+
+    public function test_claiming_an_approval_says_whether_this_call_did_it(): void
+    {
+        config(['community.pre_moderation' => true]);
+        $moderator = $this->moderator();
+        $posts = app(PostService::class);
+        $author = $this->confirmed('author@example.test');
+
+        $hidden = $posts->create($author, '<p>Versteckt</p>');
+        $posts->hide($hidden, $moderator, true, 'Spam');
+        $this->assertFalse($posts->claimApproval($hidden->fresh(), $moderator));
+
+        $waiting = $posts->create($author, '<p>Wartet</p>');
+        $stale = Post::findOrFail($waiting->id);
+        $this->assertTrue($posts->claimApproval($waiting, $moderator));
+        // A second moderator with a stale copy does not get to announce it again.
+        $this->assertFalse($posts->claimApproval($stale, $moderator));
+    }
+
+    public function test_a_hidden_post_among_visible_ones_does_not_cost_the_trust(): void
+    {
+        config(['community.pre_moderation' => true, 'community.trusted_after' => 1]);
+        $author = $this->confirmed('author@example.test');
+        $moderator = $this->moderator();
+        $posts = app(PostService::class);
+
+        $good = $posts->create($author, '<p>Gut</p>');
+        $posts->approve($good, $moderator);
+        $bad = $posts->create($author, '<p>Schlecht</p>');
+        $posts->approve($bad, $moderator);
+        $posts->hide($bad->fresh(), $moderator, true, 'Spam');
+
+        $this->assertSame(Post::PUBLISHED, $posts->create($author, '<p>Dritter</p>')->status);
     }
 }

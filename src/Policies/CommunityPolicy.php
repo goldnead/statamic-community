@@ -40,12 +40,12 @@ class CommunityPolicy
     public function update(mixed $user, Post|Comment $target): bool
     {
         // What moderation hid stays as moderation left it, whoever wrote it.
-        return ! $target->getAttribute('hidden') && $this->confirmed($user) && $this->own($user, $target);
+        return ! $target->getAttribute('hidden') && $this->confirmed($user) && $this->own($user, $target) && $this->stillSpeaksForTeam($user, $target);
     }
 
     public function delete(mixed $user, Post|Comment $target): bool
     {
-        return $this->own($user, $target) || $this->moderate($user);
+        return $this->moderate($user) || $this->own($user, $target);
     }
 
     public function moderate(mixed $user): bool
@@ -61,15 +61,23 @@ class CommunityPolicy
             return false;
         }
 
-        // A post written for a team stays the team's: whoever lost the right
-        // to speak for it (removed, role changed) no longer edits or deletes it.
-        if ($target->author_team_id !== null) {
-            $team = Team::query()->find($target->author_team_id);
+        return true;
+    }
 
-            return $team !== null && $this->mayActAs($user, $team);
+    /**
+     * A post written for a team stays the team's: whoever lost the right to
+     * speak for it (removed, role changed) no longer edits it. Deleting one's
+     * own text stays with the author.
+     */
+    protected function stillSpeaksForTeam(mixed $user, Post|Comment $target): bool
+    {
+        if ($target->author_team_id === null) {
+            return true;
         }
 
-        return true;
+        $team = $target->relationLoaded('team') ? $target->getRelation('team') : Team::query()->find($target->author_team_id);
+
+        return $team !== null && $this->mayActAs($user, $team);
     }
 
     protected function mayActAs(mixed $user, ?Team $team): bool
