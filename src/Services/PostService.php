@@ -91,7 +91,7 @@ class PostService
         // moderators who approve at once only one update matches the pending
         // row, so only one of them announces the post.
         $published = now();
-        $claimed = Post::where('id', $post->id)->where('status', Post::PENDING)
+        $claimed = Post::where('id', $post->id)->where('status', Post::PENDING)->where('hidden', false)
             ->update(['status' => Post::PUBLISHED, 'published_at' => $published, 'updated_at' => $published]);
 
         $post->refresh();
@@ -135,7 +135,7 @@ class PostService
             return true;
         }
 
-        return Post::where('author_user_id', $key)->where('status', Post::PUBLISHED)->count() >= config('community.trusted_after');
+        return Post::where('author_user_id', $key)->where('status', Post::PUBLISHED)->where('hidden', false)->count() >= config('community.trusted_after');
     }
 
     protected function clean(string $body): string

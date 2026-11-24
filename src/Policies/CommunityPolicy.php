@@ -39,7 +39,8 @@ class CommunityPolicy
 
     public function update(mixed $user, Post|Comment $target): bool
     {
-        return $this->confirmed($user) && $this->own($user, $target);
+        // What moderation hid stays as moderation left it, whoever wrote it.
+        return ! $target->getAttribute('hidden') && $this->confirmed($user) && $this->own($user, $target);
     }
 
     public function delete(mixed $user, Post|Comment $target): bool
@@ -56,7 +57,19 @@ class CommunityPolicy
     {
         $key = Users::key($user);
 
-        return $key !== null && $target->author_user_id === $key;
+        if ($key === null || $target->author_user_id !== $key) {
+            return false;
+        }
+
+        // A post written for a team stays the team's: whoever lost the right
+        // to speak for it (removed, role changed) no longer edits or deletes it.
+        if ($target->author_team_id !== null) {
+            $team = Team::query()->find($target->author_team_id);
+
+            return $team !== null && $this->mayActAs($user, $team);
+        }
+
+        return true;
     }
 
     protected function mayActAs(mixed $user, ?Team $team): bool
