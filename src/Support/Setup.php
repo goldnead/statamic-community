@@ -47,7 +47,14 @@ final class Setup
      */
     public static function detailGuardFrom(string $guard, string $title, string ...$tables): array
     {
-        if (! class_exists($guard) || ! method_exists($guard, 'using') || ! defined($guard.'::ALIAS')) {
+        // Not installed is the normal case and says nothing. Installed but unusable is a setup fault, and the log says so.
+        if (! class_exists($guard)) {
+            return [];
+        }
+
+        if (! method_exists($guard, 'using') || ! defined($guard.'::ALIAS')) {
+            Log::warning('statamic-community: the setup guard '.$guard.' is installed but has no ALIAS or using(), the page runs without the setup screen.');
+
             return [];
         }
 
@@ -56,6 +63,8 @@ final class Setup
         // (Laravel reads it as a class name), so no alias means no middleware.
         // Routes load after every provider has booted, so the answer is final.
         if (! array_key_exists(constant($guard.'::ALIAS'), app('router')->getMiddleware())) {
+            Log::warning('statamic-community: the setup guard alias "'.constant($guard.'::ALIAS').'" is not registered, the page runs without the setup screen.');
+
             return [];
         }
 
