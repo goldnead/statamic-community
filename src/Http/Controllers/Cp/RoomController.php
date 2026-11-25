@@ -11,6 +11,7 @@ use Goldnead\Community\Support\RoomBlueprint;
 use Goldnead\Community\Support\Setup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -124,9 +125,12 @@ class RoomController extends Controller
             }
         }
 
+        // Neither write fires an event, so the transaction only has to keep a failed pin from leaving the saved fields behind.
         try {
-            $this->rooms->save($room, $data);
-            $this->rooms->pin($room, $pinned);
+            DB::transaction(function () use ($room, $data, $pinned) {
+                $this->rooms->save($room, $data);
+                $this->rooms->pin($room, $pinned);
+            });
         } catch (CommunityException $e) {
             throw ValidationException::withMessages(['kind' => __($e->getMessage())]);
         }
