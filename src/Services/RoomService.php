@@ -63,11 +63,14 @@ class RoomService
 
     public function join(Room $room, mixed $user, string $notify = 'digest'): RoomMembership
     {
-        if ($room->isArchived()) {
+        $keys = ['room_id' => $room->id, 'user_id' => Users::key($user)];
+
+        // An archived room takes no new members. Someone who is in it already may
+        // still change how they are notified: that is the same call.
+        if ($room->isArchived() && ! RoomMembership::where($keys)->exists()) {
             throw CommunityException::archivedRoom();
         }
 
-        $keys = ['room_id' => $room->id, 'user_id' => Users::key($user)];
         $values = ['notify' => $notify];
 
         try {

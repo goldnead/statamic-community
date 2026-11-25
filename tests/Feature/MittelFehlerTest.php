@@ -24,6 +24,18 @@ class MittelFehlerTest extends TestCase
         app(RoomService::class)->join($room, $user);
     }
 
+    public function test_a_member_of_an_archived_room_can_still_change_the_notification(): void
+    {
+        $room = Room::create(['slug' => 'alt2', 'name' => 'Alt2', 'kind' => 'topic']);
+        $user = $this->makeUser('join-archiv-mitglied@example.test');
+        app(RoomService::class)->join($room, $user, 'digest');
+        $room->update(['archived_at' => now()]);
+
+        $membership = app(RoomService::class)->join($room->fresh(), $user, 'off');
+
+        $this->assertSame('off', $membership->notify);
+    }
+
     public function test_a_join_that_loses_the_insert_race_updates_the_existing_row(): void
     {
         $room = Room::create(['slug' => 'rennen', 'name' => 'Rennen', 'kind' => 'topic']);
