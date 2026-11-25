@@ -8,6 +8,7 @@ use Goldnead\Accounts\PersonalData\ErasureResult;
 use Goldnead\Community\Models\Comment;
 use Goldnead\Community\Models\Post;
 use Goldnead\Community\Models\Reaction;
+use Goldnead\Community\Models\Room;
 use Goldnead\Community\Models\RoomMembership;
 use Illuminate\Support\Facades\DB;
 use Statamic\Auth\User;
@@ -68,6 +69,8 @@ class CommunityContributor implements ContributesPersonalData, ErasesPersonalDat
                 ->orWhere(fn ($q) => $q->where('target_type', Comment::TYPE)->whereIn('target_id', $commentIds))
                 ->delete();
             $comments = Comment::whereIn('id', $commentIds)->delete();
+            // No foreign key on pinned_post_id: a room pinning a deleted post would keep the dangling id.
+            Room::whereIn('pinned_post_id', $postIds)->update(['pinned_post_id' => null]);
             $posts = Post::whereIn('id', $postIds)->delete();
             $rooms = RoomMembership::where('user_id', $id)->delete();
 

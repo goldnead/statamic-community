@@ -7,6 +7,7 @@ use Goldnead\Community\Models\Post;
 use Goldnead\Community\Models\Room;
 use Goldnead\Community\Models\RoomMembership;
 use Goldnead\Teams\Support\Users;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -62,10 +63,23 @@ class RoomService
 
     public function join(Room $room, mixed $user, string $notify = 'digest'): RoomMembership
     {
-        return RoomMembership::updateOrCreate(
-            ['room_id' => $room->id, 'user_id' => Users::key($user)],
-            ['notify' => $notify],
-        );
+        $keys = ['room_id' => $room->id, 'user_id' => Users::key($user)];
+
+        // An archived room takes no new members. Someone who is in it already may
+        // still change how they are notified: that is the same call.
+        if ($room->isArchived() && ! RoomMembership::where($keys)->exists()) {
+            throw CommunityException::archivedRoom();
+        }
+
+        $values = ['notify' => $notify];
+
+        try {
+            return RoomMembership::updateOrCreate($keys, $values);
+        } catch (UniqueConstraintViolationException) {
+            // A parallel join inserted the row between our lookup and our insert.
+            // The second try finds that row and updates it: the join is idempotent.
+            return RoomMembership::updateOrCreate($keys, $values);
+        }
     }
 
     public function leave(Room $room, mixed $user): void
