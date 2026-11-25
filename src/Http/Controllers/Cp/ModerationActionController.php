@@ -16,7 +16,12 @@ class ModerationActionController extends ActionController
     protected function getSelectedItems($items, $context)
     {
         $selected = collect($items)->unique();
-        $model = ($context['type'] ?? null) === 'comment' ? Comment::class : Post::class;
+        // An unknown type is a listing that does not match this controller, not a post: refuse it.
+        $model = match ($context['type'] ?? null) {
+            'post' => Post::class,
+            'comment' => Comment::class,
+            default => abort(422),
+        };
 
         $found = $model::query()->whereKey($selected->all())->get();
 

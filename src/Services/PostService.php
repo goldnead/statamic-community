@@ -158,6 +158,7 @@ class PostService
 
         strlen($body) > Sanitizer::MAX_BODY && throw CommunityException::tooLong();
 
-        return trim(strip_tags($body)) === '' ? throw CommunityException::emptyBody() : $body;
+        // Entities first: `&#160;` is a non-breaking space, and it is no text.
+        return preg_replace('/[\s\x{A0}]+/u', '', html_entity_decode(strip_tags($body), ENT_QUOTES | ENT_HTML5, 'UTF-8')) === '' ? throw CommunityException::emptyBody() : $body;
     }
 }

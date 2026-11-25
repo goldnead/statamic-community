@@ -2,6 +2,7 @@
 
 namespace Goldnead\Community\Support;
 
+use Illuminate\Support\Facades\Log;
 use Rhukster\DomSanitizer\DOMSanitizer;
 
 /** Bodies are HTML, but only the configured tags and attributes survive. */
@@ -24,7 +25,7 @@ class Sanitizer
     /** The library drops `javascript:` but lets `vbscript:` and the like through, so links are allow-listed by scheme. */
     protected function stripUnsafeLinks(string $html): string
     {
-        return preg_replace_callback('/\s+href="([^"]*)"/i', function (array $match) {
+        $filtered = preg_replace_callback('/\s+href="([^"]*)"/i', function (array $match) {
             $href = preg_replace('/[\x00-\x20]+/', '', html_entity_decode($match[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
 
             if (! preg_match('/^([a-z][a-z0-9+.\-]*):/i', $href, $scheme)) {
@@ -32,6 +33,14 @@ class Sanitizer
             }
 
             return in_array(strtolower($scheme[1]), ['http', 'https', 'mailto', 'tel'], true) ? $match[0] : '';
-        }, $html) ?? '';
+        }, $html);
+
+        if ($filtered === null) {
+            Log::error('statamic-community: the link filter failed ('.preg_last_error_msg().'), the body came out empty.');
+
+            return '';
+        }
+
+        return $filtered;
     }
 }
