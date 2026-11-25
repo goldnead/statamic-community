@@ -35,8 +35,10 @@ class ApprovePost extends ModerationAction
     public function run($items, $values)
     {
         $service = app(PostService::class);
-        $items->each(fn (Post $post) => $service->approve($post, $this->moderator()));
+        // Counted by outcome: a post moderation hid, or one another moderator
+        // approved a moment ago, is not "approved" by this click.
+        $approved = $items->filter(fn (Post $post) => $service->claimApproval($post, $this->moderator()))->count();
 
-        return trans_choice('{1} Post approved|[2,*] :count posts approved', $items->count());
+        return trans_choice('{1} Post approved|[2,*] :count posts approved', $approved);
     }
 }
