@@ -1,6 +1,17 @@
 # Changelog
 
-## Unreleased
+## 0.1.3 — 2026-11-25
+
+### Fixed
+
+- **Moderation can no longer be bypassed.** Approving a pending post that a moderator hid no longer publishes it (and no longer announces `PostCreated`); `ApprovePost` counts the posts it actually approved. Hidden posts no longer count towards the trust counter, so a moderated spammer does not keep skipping pre-moderation. An author can no longer edit a hidden post or comment. Editing a team post now needs the right to post as that team (a removed member or one without `post as team` loses editing); deleting one's own text stays with the author, and moderators are unaffected.
+- Joining an archived room is refused with `CommunityException::archivedRoom()` (as already for posting); a parallel double join is idempotent instead of failing on the unique key.
+- Room edit: saving the fields and the pin run in one transaction, so a failing pin leaves no changed fields behind. Erasing a contributor clears room pins that point to their deleted posts.
+- A post or comment that only contains a non-breaking space (`<p>&#160;</p>`) counts as empty. The moderation action answers `422` for an unknown `context.type` instead of silently falling back to posts. A failing link filter (PCRE error) logs the error; an installed but unusable brand-context setup guard logs a warning.
+
+### Upgrading
+
+- Behaviour changes for custom callers: the moderation action needs a `context.type` of `post` or `comment` (both bundled listings send it); former team members without `post as team` can no longer edit their team posts. No migration, no new config key.
 
 ### Changed
 
